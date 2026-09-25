@@ -4,11 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { createClient } from '@supabase/supabase-js';
 
-// 1. Las credenciales van aquí arriba, fuera de la clase
+// 1. Credenciales de Supabase (URL limpia sin /rest/v1/)
 const supabaseUrl = 'https://qogwkhljcneoakcfksge.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvZ3draGxqY25lb2FrY2Zrc2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNzgzNDgsImV4cCI6MjA5NTk1NDM0OH0.29r0ytS9LNfuwruWLPOo5LPFkL_5lAV5-g8-PqhBqco';
 const supabase = createClient(supabaseUrl, supabaseKey);
-
 
 type Role = 'Vendedor' | 'Almacenero' | 'Abastecimiento' | 'JefeAlmacen' | 'Gerente';
 type User = { role: Role; name: string };
@@ -38,7 +37,7 @@ const proveedoresList = [
         <div class="mb-7 text-center">
           <div class="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-[#285260] text-3xl text-white shadow-inner">🔩</div>
           <h1 class="text-2xl font-black text-[#285260]">Ferretería Don Pedrito</h1>
-          <p class="mt-1 text-sm text-slate-500">Sistema Conectado a MySQL (Spring Boot)</p>
+          <p class="mt-1 text-sm text-slate-500">Sistema Conectado a Supabase (Nube)</p>
         </div>
         <label class="mb-4 block text-sm font-bold text-[#285260]">Usuario
           <input [(ngModel)]="username" name="username" required class="mt-1 w-full rounded-xl border border-[#B4D7D8] p-3 font-normal outline-none focus:border-[#548C92] bg-slate-50">
@@ -161,7 +160,7 @@ const proveedoresList = [
                   <div class="flex justify-between pt-3"><dt class="text-slate-500">Unidades</dt><dd class="font-bold">{{units}}</dd></div>
                   <div class="flex justify-between pt-3 text-base"><dt class="font-bold">Total</dt><dd class="font-black text-[#285260]">PEN{{total | number:'1.2-2'}}</dd></div>
                 </dl>
-                <p class="rounded-lg bg-slate-100 p-3 text-xs text-slate-600 leading-relaxed">La emisión registra venta, detalle, movimiento y trazabilidad en tu base de datos MySQL.</p>
+                <p class="rounded-lg bg-slate-100 p-3 text-xs text-slate-600 leading-relaxed">La emisión registra venta, detalle, movimiento y trazabilidad en tu base de datos de Supabase.</p>
               </aside>
             </section>
 
@@ -234,7 +233,7 @@ const proveedoresList = [
                       </label>
                     </div>
                   </div>
-                  <button (click)="importXmlToDb()" class="w-full rounded bg-[#285260] py-2 font-bold text-white">Registrar Ítems Conformes en MySQL</button>
+                  <button (click)="importXmlToDb()" class="w-full rounded bg-[#285260] py-2 font-bold text-white">Registrar Ítems Conformes en Supabase</button>
                 </div>
               </div>
 
@@ -537,7 +536,7 @@ export class AppComponent implements OnInit {
     return ({ Vendedor: 'ventas', Almacenero: 'inventario', Abastecimiento: 'registro', JefeAlmacen: 'guias', Gerente: 'dashboard_dir' } as Record<Role, string>)[role];
   }
 
-loadProducts() {
+  loadProducts() {
     supabase
       .from('producto')
       .select('*')
@@ -580,7 +579,7 @@ loadProducts() {
       this.store('don_pedrito_sale_count', this.saleCount);
       this.outgoing.push(...this.cart.map(x => ({ id: x.id, qty: x.quantity })));
       this.store('don_pedrito_outgoing', this.outgoing);
-      this.notify(`¡${this.documentType} emitida y guardada con éxito en MySQL!`);
+      this.notify(`¡${this.documentType} emitida y guardada con éxito en Supabase!`);
       this.cart = [];
     }, 800);
   }
@@ -648,7 +647,7 @@ loadProducts() {
   importXmlToDb() {
     const valid = this.xmlPreviewItems.filter(x => x.conform);
     if (!valid.length) return this.notify('No hay ítems conformes.', 'error');
-    this.notify(`¡${valid.length} ítems validados e importados a MySQL!`);
+    this.notify(`¡${valid.length} ítems validados e importados a Supabase!`);
     this.xmlPreviewItems = [];
   }
 
@@ -658,23 +657,23 @@ loadProducts() {
     }
     const payload = {
       codigo: 'MAN-' + Date.now(),
-      nombreproducto: this.newProduct.name,
-      categoria: this.newProduct.category,
-      stockactual: this.newProduct.stock,
-      stockminimo: 5,
-      preciounitario: 0,
-      precioventa: 15.00,
-      fechallegada: new Date().toISOString().slice(0, 10),
-      idproveedor: 1
+      nombre: this.newProduct.name,
+      id_categoria: this.newProduct.category,
+      stock_tienda: this.newProduct.stock,
+      precio_venta: 15.00
     };
-    this.http.post(this.apiBaseUrl, payload).subscribe({
-      next: () => {
+    supabase
+      .from('producto')
+      .insert([payload])
+      .then(({ error }) => {
+        if (error) {
+          this.notify('Error al guardar en Supabase.', 'error');
+          return;
+        }
         this.loadProducts();
         this.newProduct = { name: '', category: '', stock: null, supplier: '' };
-        this.notify('Producto guardado en MySQL.');
-      },
-      error: () => this.notify('Error al conectar con Spring Boot / MySQL.', 'error')
-    });
+        this.notify('¡Producto guardado con éxito en Supabase!');
+      });
   }
 
   registerEntry() {
