@@ -1,0 +1,56 @@
+/* Estilos directos para asegurar el diseño de Ferretería Don Pedrito */
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  background-color: #FDFBF7;
+  color: #285260;
+}
+
+/* Contenedores y tarjetas */
+.bg-ferreteria-dark { background-color: #285260; }
+.bg-ferreteria-teal { background-color: #548C92; }
+.text-ferreteria-dark { color: #285260; }
+.text-ferreteria-teal { color: #548C92; }
+
+/* Forzar apariencia de tarjetas y tablas limpias */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+th, td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #E0D7CF;
+}
+
+th {
+  background-color: #E0D7CF;
+  color: #285260;
+  font-weight: bold;
+}
+
+input, select {
+  padding: 8px 12px;
+  border: 1px solid #B4D7D8;
+  border-radius: 6px;
+  outline: none;
+}
+
+input:focus, select:focus {
+  border-color: #548C92;
+  box-shadow: 0 0 0 2px rgba(84, 140, 146, 0.2);
+}
+
+button {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
