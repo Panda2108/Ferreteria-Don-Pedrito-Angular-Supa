@@ -2,6 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { createClient } from '@supabase/supabase-js';
+
+// 1. Las credenciales van aquí arriba, fuera de la clase
+const supabaseUrl = 'https://qogwkhljcneoakcfksge.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvZ3draGxqY25lb2FrY2Zrc2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNzgzNDgsImV4cCI6MjA5NTk1NDM0OH0.29r0ytS9LNfuwruWLPOo5LPFkL_5lAV5-g8-PqhBqco';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 
 type Role = 'Vendedor' | 'Almacenero' | 'Abastecimiento' | 'JefeAlmacen' | 'Gerente';
 type User = { role: Role; name: string };
@@ -413,7 +420,6 @@ const proveedoresList = [
 })
 export class AppComponent implements OnInit {
   private http = inject(HttpClient);
-  private apiBaseUrl = 'http://localhost:8080/api/productos';
 
   user: User | null = this.read<User>('don_pedrito_user');
   tab = this.read<string>('don_pedrito_tab') || '';
@@ -531,22 +537,26 @@ export class AppComponent implements OnInit {
     return ({ Vendedor: 'ventas', Almacenero: 'inventario', Abastecimiento: 'registro', JefeAlmacen: 'guias', Gerente: 'dashboard_dir' } as Record<Role, string>)[role];
   }
 
-  loadProducts() {
-    this.http.get<any[]>(this.apiBaseUrl).subscribe({
-      next: (data) => {
-        this.products = data.map((p: any) => ({
-          id: Number(p.idproducto || p.id || p.IdProducto),
-          code: p.codigo || p.Codigo || String(p.idproducto || p.id),
-          name: p.nombreproducto || p.nombreProducto || p.name || p.NombreProducto,
-          category: p.categoria || p.Categoria || p.CATEGORIA || 'Sin categoría', // <- Corregido aquí
-          stock: Number(p.stockactual ?? p.stock ?? p.StockActual ?? 0),
-          price: Number(p.precioventa ?? p.price ?? p.PrecioVenta ?? 0)
-        }));
-      },
-      error: () => {
-        this.notify('No se pudo conectar con MySQL vía Spring Boot. Verifique que el backend esté encendido.', 'error');
-      }
-    });
+loadProducts() {
+    supabase
+      .from('producto')
+      .select('*')
+      .then(({ data, error }) => {
+        if (error) {
+          this.notify('Error al conectar con Supabase.', 'error');
+          return;
+        }
+        if (data) {
+          this.products = data.map((p: any) => ({
+            id: Number(p.id_producto || p.id),
+            code: String(p.codigo || p.id_producto),
+            name: p.nombre || p.name,
+            category: String(p.id_categoria || 'General'),
+            stock: Number(p.stock_tienda ?? p.stock ?? 0),
+            price: Number(p.precio_venta ?? p.price ?? 0)
+          }));
+        }
+      });
   }
 
   addLine() {
