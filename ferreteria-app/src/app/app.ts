@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // 1. Credenciales de Supabase (URL limpia sin /rest/v1/)
 const supabaseUrl = 'https://qogwkhljcneoakcfksge.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFvZ3draGxqY25lb2FrY2Zrc2dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNzgzNDgsImV4cCI6MjA5NTk1NDM0OH0.29r0ytS9LNfuwruWLPOo5LPFkL_5lAV5-g8-PqhBqco';
+const supabaseKey = 'sb_publishable_fwTceyPmci9Rv3JdT1KiLg_L3zJ4wSy';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 type Role = 'Vendedor' | 'Almacenero' | 'Abastecimiento' | 'JefeAlmacen' | 'Gerente';
@@ -84,7 +84,7 @@ const proveedoresList = [
         <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 shadow-xs">
           <div>
             <p class="font-bold text-slate-800 text-base">Portal {{user.role}}</p>
-            <p class="text-xs text-slate-400">Angular · sesión local conservada</p>
+            <p class="text-xs text-slate-400">Angular · Supabase Conectado</p>
           </div>
           <button (click)="logout()" class="md:hidden text-sm font-bold text-red-600">Salir</button>
         </header>
@@ -96,10 +96,11 @@ const proveedoresList = [
 
           <!-- ================= VENDEDOR ================= -->
           <ng-container *ngIf="user.role==='Vendedor'">
-            <div class="mb-5 flex gap-2 border-b border-slate-200">
-              <button (click)="tab='ventas'" [class.border-b-2]="tab==='ventas'" [class.border-slate-800]="tab==='ventas'" [class.font-bold]="tab==='ventas'" class="px-4 py-3 text-sm text-slate-600 hover:text-slate-900">🧾 Venta rápida</button>
-              <button (click)="tab='inventario_ventas'" [class.border-b-2]="tab==='inventario_ventas'" [class.border-slate-800]="tab==='inventario_ventas'" [class.font-bold]="tab==='inventario_ventas'" class="px-4 py-3 text-sm text-slate-600 hover:text-slate-900">📦 Inventario en tiempo real</button>
-              <button (click)="tab='devoluciones'" [class.border-b-2]="tab==='devoluciones'" [class.border-slate-800]="tab==='devoluciones'" [class.font-bold]="tab==='devoluciones'" class="px-4 py-3 text-sm text-slate-600 hover:text-slate-900">🔄 Devoluciones</button>
+            <div class="mb-5 flex gap-2 border-b border-slate-200 overflow-x-auto">
+              <button (click)="tab='ventas'" [class.border-b-2]="tab==='ventas'" [class.border-slate-800]="tab==='ventas'" [class.font-bold]="tab==='ventas'" class="px-4 py-3 text-sm text-slate-600 hover:text-slate-900 whitespace-nowrap">🧾 Venta rápida</button>
+              <button (click)="tab='historial_ventas'; cargarHistorialVentas()" [class.border-b-2]="tab==='historial_ventas'" [class.border-slate-800]="tab==='historial_ventas'" [class.font-bold]="tab==='historial_ventas'" class="px-4 py-3 text-sm text-slate-600 hover:text-slate-900 whitespace-nowrap">📑 Historial de Boletas</button>
+              <button (click)="tab='inventario_ventas'" [class.border-b-2]="tab==='inventario_ventas'" [class.border-slate-800]="tab==='inventario_ventas'" [class.font-bold]="tab==='inventario_ventas'" class="px-4 py-3 text-sm text-slate-600 hover:text-slate-900 whitespace-nowrap">📦 Inventario en tiempo real</button>
+              <button (click)="tab='devoluciones'" [class.border-b-2]="tab==='devoluciones'" [class.border-slate-800]="tab==='devoluciones'" [class.font-bold]="tab==='devoluciones'" class="px-4 py-3 text-sm text-slate-600 hover:text-slate-900 whitespace-nowrap">🔄 Devoluciones</button>
             </div>
 
             <!-- Venta Rápida -->
@@ -160,8 +161,50 @@ const proveedoresList = [
                   <div class="flex justify-between pt-3"><dt class="text-slate-500">Unidades</dt><dd class="font-bold">{{units}}</dd></div>
                   <div class="flex justify-between pt-3 text-base"><dt class="font-bold">Total</dt><dd class="font-black text-[#285260]">PEN{{total | number:'1.2-2'}}</dd></div>
                 </dl>
-                <p class="rounded-lg bg-slate-100 p-3 text-xs text-slate-600 leading-relaxed">La emisión registra venta, detalle, movimiento y trazabilidad en tu base de datos de Supabase.</p>
+                <p class="rounded-lg bg-slate-100 p-3 text-xs text-slate-600 leading-relaxed">La emisión registra venta y trazabilidad en tu base de datos Supabase.</p>
               </aside>
+            </section>
+
+            <!-- Historial de Boletas por Mes y Año -->
+            <section *ngIf="tab==='historial_ventas'" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+              <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h2 class="text-xl font-black text-slate-800">Historial de Boletas y Facturas</h2>
+                  <p class="text-sm text-slate-500">Consulta los comprobantes emitidos filtrados por mes y año.</p>
+                </div>
+                <div class="flex gap-2">
+                  <select [(ngModel)]="filtroAnio" class="rounded border p-2 text-sm bg-white font-bold">
+                    <option *ngFor="let y of years" [value]="y">{{y}}</option>
+                  </select>
+                  <select [(ngModel)]="filtroMes" class="rounded border p-2 text-sm bg-white font-bold">
+                    <option *ngFor="let m of months" [value]="m">{{m}}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-slate-100 text-left">
+                    <tr>
+                      <th class="p-3">Comprobante</th>
+                      <th class="p-3">Tipo</th>
+                      <th class="p-3">Fecha y Hora</th>
+                      <th class="p-3 text-right">Total (PEN)</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <tr *ngIf="ventasFiltradasPorMesAnio.length===0">
+                      <td colspan="4" class="p-6 text-center text-slate-400">No hay ventas registradas para {{filtroMes}} de {{filtroAnio}}.</td>
+                    </tr>
+                    <tr *ngFor="let v of ventasFiltradasPorMesAnio" class="border-b">
+                      <td class="p-3 font-mono font-bold text-[#285260]">{{v.serie}}-{{v.numero}}</td>
+                      <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold" [class.bg-blue-50]="v.tipo_comprobante==='BOLETA'" [class.text-blue-700]="v.tipo_comprobante==='BOLETA'" [class.bg-purple-50]="v.tipo_comprobante==='FACTURA'" [class.text-purple-700]="v.tipo_comprobante==='FACTURA'">{{v.tipo_comprobante}}</span></td>
+                      <td class="p-3 text-slate-600">{{v.fecha | date:'medium'}}</td>
+                      <td class="p-3 text-right font-black text-slate-900">S/ {{v.total | number:'1.2-2'}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </section>
 
             <!-- Inventario en tiempo real -->
@@ -463,9 +506,15 @@ export class AppComponent implements OnInit {
 
   outgoing: any[] = this.read<any[]>('don_pedrito_outgoing') || [];
 
+  // Variables para el historial de ventas
+  historialVentas: any[] = [];
+  filtroAnio = '2026';
+  filtroMes = 'Septiembre';
+
   ngOnInit() {
     if (this.user && !this.tab) this.tab = this.defaultTab(this.user.role);
     this.loadProducts();
+    this.cargarHistorialVentas();
   }
 
   get menu(): MenuItem[] {
@@ -540,22 +589,49 @@ export class AppComponent implements OnInit {
     supabase
       .from('producto')
       .select('*')
-      .then(({ data, error }) => {
+      .then(({ data, error }: { data: any; error: any }) => {
         if (error) {
           this.notify('Error al conectar con Supabase.', 'error');
           return;
         }
         if (data) {
           this.products = data.map((p: any) => ({
-            id: Number(p.id_producto || p.id),
-            code: String(p.codigo || p.id_producto),
-            name: p.nombre || p.name,
+            id: Number(p.id_producto),
+            code: String(p.codigo),
+            name: String(p.nombre),
             category: String(p.id_categoria || 'General'),
-            stock: Number(p.stock_tienda ?? p.stock ?? 0),
-            price: Number(p.precio_venta ?? p.price ?? 0)
+            stock: Number(p.stock_tienda || 0),
+            price: Number(p.precio_venta || 0)
           }));
         }
       });
+  }
+
+  cargarHistorialVentas() {
+    supabase
+      .from('venta')
+      .select('*')
+      .order('fecha', { ascending: false })
+      .then(({ data, error }: { data: any; error: any }) => {
+        if (!error && data) {
+          this.historialVentas = data;
+        }
+      });
+  }
+
+  get ventasFiltradasPorMesAnio() {
+    const mesesMap: Record<string, string> = {
+      'Enero': '01', 'Febrero': '02', 'Marzo': '03', 'Abril': '04',
+      'Mayo': '05', 'Junio': '06', 'Julio': '07', 'Agosto': '08',
+      'Septiembre': '09', 'Octubre': '10', 'Noviembre': '11', 'Diciembre': '12'
+    };
+    const mesNum = mesesMap[this.filtroMes];
+
+    return this.historialVentas.filter(v => {
+      if (!v.fecha) return false;
+      const [anioVenta, mesVenta] = v.fecha.split('T')[0].split('-');
+      return anioVenta === this.filtroAnio && mesVenta === mesNum;
+    });
   }
 
   addLine() {
@@ -573,15 +649,37 @@ export class AppComponent implements OnInit {
   emitSale() {
     if (!this.cart.length) return;
     this.saving = true;
-    setTimeout(() => {
-      this.saving = false;
-      this.saleCount++;
-      this.store('don_pedrito_sale_count', this.saleCount);
-      this.outgoing.push(...this.cart.map(x => ({ id: x.id, qty: x.quantity })));
-      this.store('don_pedrito_outgoing', this.outgoing);
-      this.notify(`¡${this.documentType} emitida y guardada con éxito en Supabase!`);
-      this.cart = [];
-    }, 800);
+
+    const totalVenta = this.total;
+    const tipo = this.documentType;
+    const numComprobante = 'B' + Math.floor(1000 + Math.random() * 9000);
+
+    const payloadVenta = {
+      total: totalVenta,
+      tipo_comprobante: tipo,
+      serie: 'B001',
+      numero: numComprobante,
+      fecha: new Date().toISOString()
+    };
+
+    supabase
+      .from('venta')
+      .insert([payloadVenta])
+      .then(({ error }: { error: any }) => {
+        this.saving = false;
+        if (error) {
+          this.notify('Error al registrar la venta en Supabase.', 'error');
+          return;
+        }
+        this.saleCount++;
+        this.store('don_pedrito_sale_count', this.saleCount);
+        this.outgoing.push(...this.cart.map(x => ({ id: x.id, qty: x.quantity })));
+        this.store('don_pedrito_outgoing', this.outgoing);
+
+        this.notify(`¡${tipo} ${numComprobante} emitida y guardada en Supabase con éxito!`);
+        this.cart = [];
+        this.cargarHistorialVentas();
+      });
   }
 
   printReceipt() {
@@ -658,14 +756,17 @@ export class AppComponent implements OnInit {
     const payload = {
       codigo: 'MAN-' + Date.now(),
       nombre: this.newProduct.name,
-      id_categoria: this.newProduct.category,
+      id_categoria: 1,
       stock_tienda: this.newProduct.stock,
+      stock_almacen: this.newProduct.stock,
+      stock_minimo: 5,
+      precio_compra: 1.00,
       precio_venta: 15.00
     };
     supabase
       .from('producto')
       .insert([payload])
-      .then(({ error }) => {
+      .then(({ error }: { error: any }) => {
         if (error) {
           this.notify('Error al guardar en Supabase.', 'error');
           return;
